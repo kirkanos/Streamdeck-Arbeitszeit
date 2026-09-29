@@ -1,6 +1,6 @@
 # Streamdeck-Arbeitszeit
 
-Stream Deck plugin `com.kirkanos.arbeitszeit`. Status: plan only, no code yet.
+Stream Deck plugin `com.kirkanos.arbeitszeit`. Status: M1–M3 implemented; M0 (Berry changes) proposed in `docs/awtrix-mqtt.md`; M4 open.
 
 ## Goal
 

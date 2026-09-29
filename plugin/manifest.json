@@ -1,0 +1,76 @@
+{
+  "$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
+  "UUID": "com.kirkanos.arbeitszeit",
+  "Name": "Worktime",
+  "Version": "0.0.0.0",
+  "Author": "Andreas Hacker",
+  "Description": "Working time from the AWTRIX Arbeitszeit app, mirrored on the Stream Deck: net time, progress to the target, overtime, and clock in / pause / resume from a key.",
+  "URL": "https://github.com/kirkanos/Streamdeck-Arbeitszeit",
+  "Icon": "images/icon",
+  "Category": "Worktime",
+  "CategoryIcon": "images/category",
+  "CodePath": "bin/plugin.js",
+  "SDKVersion": 3,
+  "Nodejs": {
+    "Version": "24",
+    "Debug": "enabled"
+  },
+  "Software": {
+    "MinimumVersion": "7.1"
+  },
+  "OS": [
+    {
+      "Platform": "mac",
+      "MinimumVersion": "12"
+    },
+    {
+      "Platform": "windows",
+      "MinimumVersion": "10"
+    }
+  ],
+  "Actions": [
+    {
+      "UUID": "com.kirkanos.arbeitszeit.worktime",
+      "Name": "Worktime",
+      "Icon": "images/actions/worktime",
+      "Tooltip": "Net working time with progress bar; press to clock in, pause or resume, hold to end the day",
+      "PropertyInspectorPath": "ui/worktime.html",
+      "Controllers": [
+        "Keypad"
+      ],
+      "SupportedInMultiActions": false,
+      "States": [
+        {
+          "Image": "images/key",
+          "TitleAlignment": "top",
+          "FontSize": 10
+        }
+      ]
+    },
+    {
+      "UUID": "com.kirkanos.arbeitszeit.dial-worktime",
+      "Name": "Dial Worktime",
+      "Icon": "images/actions/dial",
+      "Tooltip": "Net working time on the touch strip; push or tap to clock in, pause or resume, hold to end the day",
+      "PropertyInspectorPath": "ui/worktime.html",
+      "Controllers": [
+        "Encoder"
+      ],
+      "Encoder": {
+        "layout": "layouts/dial.json",
+        "Icon": "images/actions/dial",
+        "TriggerDescription": {
+          "Push": "Clock in / pause / resume",
+          "LongTouch": "End the day (reset)",
+          "Touch": "Clock in / pause / resume"
+        }
+      },
+      "SupportedInMultiActions": false,
+      "States": [
+        {
+          "Image": "images/key"
+        }
+      ]
+    }
+  ]
+}
