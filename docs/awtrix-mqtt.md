@@ -2,8 +2,9 @@
 
 The Stream Deck plugin mirrors the Berry app `arbeitszeit.ax` from
 [awtrix-ng-scripts](https://github.com/kirkanos/awtrix-ng-scripts). The panel stays the source
-of truth; the plugin only needs two MQTT topics from the app. This page proposes the Berry
-changes (milestone M0 of the plan, to be committed in `awtrix-ng-scripts`).
+of truth; the plugin only needs two MQTT topics from the app. The Berry changes below are
+implemented in `awtrix-ng-scripts` (Arbeitszeit 1.1): the app has a `MQTT (Stream Deck)` switch
+(default on) and a `MQTT-Topic` setting; this page documents the contract.
 
 Prerequisites on the panel: an MQTT broker configured in the AWTRIX settings (the Berry
 `mqtt.publish` / `mqtt.subscribe` calls are silent no-ops without one).

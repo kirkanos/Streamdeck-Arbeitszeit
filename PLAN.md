@@ -1,6 +1,6 @@
 # Streamdeck-Arbeitszeit
 
-Stream Deck plugin `com.kirkanos.arbeitszeit`. Status: M1–M3 implemented; M0 (Berry changes) proposed in `docs/awtrix-mqtt.md`; M4 open.
+Stream Deck plugin `com.kirkanos.arbeitszeit`. Status: M0 (Berry changes, in awtrix-ng-scripts) and M1–M3 implemented; M4 open.
 
 ## Goal
 
@@ -32,7 +32,7 @@ Mirror of the Berry app `../awtrix-ng-scripts/arbeitszeit` on the deck: net work
 
 ## Milestones
 
-- M0: extend the Berry app with MQTT state and command topics (commit in `awtrix-ng-scripts`).
+- M0: extend the Berry app with MQTT state and command topics (done in `awtrix-ng-scripts`, Arbeitszeit 1.1).
 - M1: Worktime key read-only from MQTT, tests for the net-time calculation.
 - M2: clock in / pause / resume / reset commands.
 - M3: dial and touch strip.

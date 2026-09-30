@@ -9,10 +9,10 @@ const TIMEOUT_MS = 8_000;
  * Fallback without MQTT: reads and writes the Berry app's `start` setting
  * ("HH:MM") through the AWTRIX app config API.
  *
- * Assumed endpoints (AWTRIX NG):
- *   GET   /api/v1/apps/<app>/config   → { "start": "08:30", "soll": 8, ... }
- *                                       (or a list of { "key", "value" } items)
- *   PATCH /api/v1/apps/<app>/config   ← { "start": "08:30" }
+ * Endpoints (AWTRIX NG 1.1):
+ *   GET   /api/v1/apps/<app>/config   → { "name": "arbeitszeit", "fields": [ { "key": "start", "value": "08:30", ... }, ... ] }
+ *                                       (older shapes { "start": "08:30" } and [ { "key", "value" } ] are accepted too)
+ *   PATCH /api/v1/apps/<app>/config   ← { "start": "08:30" }   (assumed; not verified on a device)
  *
  * The panel has no pause state in its settings, so a pause is kept in the
  * plugin only: resuming moves the start time by the pause length, exactly
@@ -117,8 +117,11 @@ export class AwtrixBackend implements Backend {
   }
 }
 
-/** Extracts the `start` value from either config answer shape. */
+/** Extracts the `start` value from any of the config answer shapes. */
 export function readStart(config: unknown): string | undefined {
+  if (config && typeof config === "object" && Array.isArray((config as { fields?: unknown }).fields)) {
+    return readStart((config as { fields: unknown[] }).fields);
+  }
   if (Array.isArray(config)) {
     const item = config.find((c) => c && typeof c === "object" && (c as { key?: unknown }).key === "start") as
       | { value?: unknown }
