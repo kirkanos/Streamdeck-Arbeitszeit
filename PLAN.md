@@ -1,6 +1,6 @@
 # Streamdeck-Arbeitszeit
 
-Stream Deck plugin `com.kirkanos.arbeitszeit`. Status: M0 (Berry changes, in awtrix-ng-scripts) and M1–M3 implemented; M4 open.
+Stream Deck plugin `com.kirkanos.arbeitszeit`. Status: M1–M4 done, released 1.0.0.
 
 ## Goal
 
