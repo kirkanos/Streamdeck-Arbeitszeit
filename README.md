@@ -5,9 +5,9 @@ Your working time from the [AWTRIX Arbeitszeit app](https://github.com/kirkanos/
 ## Features
 
 * **Worktime** key:
-  * The net working time as `H:MM`, with the same break rules as the panel: 30 minutes are deducted from 6 hours gross, 45 minutes from 8 hours.
+  * The net working time as `H:MM`, with the same break rule as the panel: over 6 hours of working time 30 minutes are deducted, over 9 hours 45 — and a pause you took yourself counts towards that instead of adding to it.
   * A progress bar that fills up to the target hours; overtime is appended as orange segments up to the maximum hours, with a mark at the target.
-  * Green while under the target, orange in overtime, red once the maximum is reached. A pause indicator and a "paused" caption while clocked out.
+  * Green while under the target, orange in overtime, red once the maximum is reached. A play triangle while the time runs, pause bars and a "paused" caption while clocked out, and the colon blinks only while the time actually runs.
   * Before 8:00 without a clock-in the key is dimmed (the panel hides the app then); from 8:00 it shows `0:00` as a reminder, like the panel.
   * The caption under the time (time to go, overtime, state) is left out if you set your own title.
   * Pressing the key cycles clock in → pause → resume, exactly like the select button on the panel. Holding it for a moment ends the day (reset).
@@ -47,7 +47,7 @@ The break rules are fixed, as in the Berry app.
 
 * The AWTRIX panel runs the `arbeitszeit` Berry app with the MQTT extension described in [docs/awtrix-mqtt.md](docs/awtrix-mqtt.md): it publishes its state as JSON on `awtrix/arbeitszeit/state` and applies the commands `clock_in`, `pause`, `resume` and `reset` from `awtrix/arbeitszeit/cmd`.
 * An MQTT broker that both the panel and the computer with the Stream Deck app can reach (for Mosquitto: port 1883, or a WebSocket listener on 9001; see the same page).
-* Without MQTT, the fallback needs the panel's HTTP API reachable from the computer. It assumes `GET /api/v1/apps/<app>/config` returns the app settings including `start` (`"HH:MM"`, empty while not clocked in) and `PATCH /api/v1/apps/<app>/config` with `{ "start": "HH:MM" }` sets it. The panel has no pause state in its settings, so a pause is kept in the plugin only: the panel keeps counting until you resume, then the start time is moved by the pause length, exactly like the panel's own button does.
+* Without MQTT, the fallback needs the panel's HTTP API reachable from the computer. `GET /api/v1/apps/<app>/config` returns the app settings including `start` (`"HH:MM"`, empty while not clocked in) and `pause` (minutes taken today); `PATCH /api/v1/apps/<app>/config` with `{ "start": "HH:MM", "pause": 35 }` sets them (verified against firmware 1.2.2). Both halves live in settings, so a pause survives in this mode too and panel and plugin compute the same net time. Only the running pause is plugin-local until you resume.
 
 ## Development
 

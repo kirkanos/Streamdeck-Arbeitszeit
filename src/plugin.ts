@@ -7,6 +7,8 @@ type JsonValue = Parameters<typeof streamDeck.ui.sendToPropertyInspector>[0];
 
 /** The net time is recomputed from the last panel state this often. */
 const REFRESH_MS = 30_000;
+/** Colon blink while the time runs; matches the panel's 500 ms phase. */
+const BLINK_MS = 500;
 
 streamDeck.logger.setLevel("info");
 
@@ -23,10 +25,32 @@ function refreshAll(): void {
   void dial.refresh();
 }
 
-worktime.on("worktime", refreshAll);
+/**
+ * The colon blinks only while the time actually runs, so a stopped clock is
+ * visibly stopped. The timer exists only then - idle and paused keys are
+ * static and need no redraw twice a second.
+ */
+let blinkTimer: ReturnType<typeof setInterval> | undefined;
+
+function syncBlink(): void {
+  const state = worktime.worktime;
+  const running = state?.startMin !== undefined && !state.paused;
+  if (running && blinkTimer === undefined) {
+    blinkTimer = setInterval(refreshAll, BLINK_MS);
+  } else if (!running && blinkTimer !== undefined) {
+    clearInterval(blinkTimer);
+    blinkTimer = undefined;
+  }
+}
+
+worktime.on("worktime", () => {
+  syncBlink();
+  refreshAll();
+});
 
 worktime.on("state", () => {
   streamDeck.logger.info(`panel connection: ${worktime.state}${worktime.error ? ` (${worktime.error})` : ""}`);
+  syncBlink();
   refreshAll();
   sendToPropertyInspector(statusMessage());
 });

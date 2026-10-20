@@ -12,7 +12,15 @@ export type WorktimeKey = {
   maxMin: number;
   /** Caption drawn under the time; omitted when the user shows their own title. */
   showCaption?: boolean;
+  /** Phase of the colon blink while running; the colon stands still when the time does. */
+  colonOn?: boolean;
 };
+
+/** A triangle, the running indicator - the counterpart of the pause bars. */
+function playGlyph(x: number, y: number, size: number, fill = "#FFFFFF"): string {
+  const w = size * 0.82;
+  return `<path d="M ${x} ${y} L ${(x + w).toFixed(1)} ${(y + size / 2).toFixed(1)} L ${x} ${y + size} Z" fill="${fill}"/>`;
+}
 
 /** Two vertical bars, the pause indicator. */
 function pauseGlyph(x: number, y: number, size: number, fill = "#FFFFFF"): string {
@@ -63,6 +71,8 @@ export function worktimeKey(k: WorktimeKey): string {
     weight: 800,
     fill: dim ? THEME.subtle : "#FFFFFF",
     opacity: dim ? 0.6 : 1,
+    // Blinks only while the time runs, like the colon on the panel.
+    hideColon: w.phase === "running" && k.colonOn === false,
   });
 
   const label =
@@ -70,13 +80,18 @@ export function worktimeKey(k: WorktimeKey): string {
       ? ""
       : text(caption(w), { x: S / 2, y: 104, size: 13, weight: 600, fill: dim ? THEME.subtle : "#FFFFFF", opacity: dim ? 0.6 : 0.75 });
 
-  const pause = w.phase === "paused" ? pauseGlyph(S - 32, 16, 18, color) : "";
+  let glyph = "";
+  if (w.phase === "paused") {
+    glyph = pauseGlyph(S - 32, 16, 18, color);
+  } else if (w.phase === "running") {
+    glyph = playGlyph(S - 30, 16, 18, color);
+  }
 
   const bar = dim
     ? ""
     : progressBar({ netMin: w.netMin, targetMin: k.targetMin, maxMin: k.maxMin }, 12, 121, S - 24, 9, THEME.ok, THEME.warn);
 
-  return toDataUrl(svg(S, S, bg + accent + time + label + pause + bar));
+  return toDataUrl(svg(S, S, bg + accent + time + label + glyph + bar));
 }
 
 /** Neutral key with two lines of text, e.g. "Offline / connecting…". */

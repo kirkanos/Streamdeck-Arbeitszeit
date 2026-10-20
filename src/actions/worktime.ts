@@ -13,6 +13,7 @@ import { PLUGIN_ID } from "../config";
 import { messageKey, worktimeKey } from "../render/keys";
 import { showImage, updates } from "../throttle";
 import {
+  colonVisible,
   type Command,
   computeWorktime,
   DEFAULT_MAX_HOURS,
@@ -127,6 +128,7 @@ export class WorktimeAction extends SingletonAction<WorktimeSettings> {
         worktime: computeWorktime(worktime.worktime, minuteOfDay(), options),
         ...options,
         showCaption: !this.#hasTitle.get(actionId),
+        colonOn: colonVisible(),
       }),
     );
   }

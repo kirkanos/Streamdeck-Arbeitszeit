@@ -101,6 +101,8 @@ export type TextOptions = {
   /** Optional smaller suffix, e.g. a unit. */
   suffix?: string;
   suffixSize?: number;
+  /** Draws the first ":" invisible instead of removing it, so the text keeps its width. */
+  hideColon?: boolean;
 };
 
 export function text(content: string, o: TextOptions): string {
@@ -110,8 +112,21 @@ export function text(content: string, o: TextOptions): string {
   return (
     `<text x="${o.x}" y="${o.y}" font-family="${FONT}" font-size="${o.size}" font-weight="${o.weight ?? 700}" ` +
     `fill="${o.fill ?? "#FFFFFF"}" fill-opacity="${o.opacity ?? 1}" text-anchor="${o.anchor ?? "middle"}">` +
-    `${escapeXml(content)}${suffix}</text>`
+    `${o.hideColon ? blankColon(content) : escapeXml(content)}${suffix}</text>`
   );
+}
+
+/**
+ * Wraps the first ":" in a transparent tspan. Hiding it this way rather than
+ * dropping the character keeps the glyph advance, so the time does not jiggle
+ * from side to side while it blinks.
+ */
+function blankColon(content: string): string {
+  const i = content.indexOf(":");
+  if (i < 0) {
+    return escapeXml(content);
+  }
+  return `${escapeXml(content.slice(0, i))}<tspan fill-opacity="0">:</tspan>${escapeXml(content.slice(i + 1))}`;
 }
 
 /** Vertical gradient background with rounded corners. */

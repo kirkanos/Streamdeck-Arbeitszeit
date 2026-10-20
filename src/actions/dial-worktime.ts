@@ -12,7 +12,7 @@ import {
 import { PLUGIN_ID } from "../config";
 import { dialCanvas, dialMessage } from "../render/dial";
 import { updates } from "../throttle";
-import { type Command, computeWorktime, minuteOfDay } from "../worktime/model";
+import { colonVisible, type Command, computeWorktime, minuteOfDay } from "../worktime/model";
 import { worktime } from "../worktime/service";
 import { LONG_PRESS_MS, pressCommand, type WorktimeSettings, worktimeOptions } from "./worktime";
 
@@ -80,7 +80,7 @@ export class DialWorktimeAction extends SingletonAction<WorktimeSettings> {
       canvas = dialMessage("Waiting", "for the panel");
     } else {
       const options = worktimeOptions(settings);
-      canvas = dialCanvas({ worktime: computeWorktime(worktime.worktime, minuteOfDay(), options), ...options });
+      canvas = dialCanvas({ worktime: computeWorktime(worktime.worktime, minuteOfDay(), options), ...options, colonOn: colonVisible() });
     }
     updates.update(dial.id, canvas, (value) => dial.setFeedback({ canvas: value }));
   }

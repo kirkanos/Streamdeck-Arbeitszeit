@@ -21,7 +21,9 @@ export type WorktimeState = {
   /** True while the time is frozen ("clocked out"). */
   paused: boolean;
   /** Minute of the day the current pause began; only meaningful while paused. */
-  pauseMin: number;
+  pausedAtMin: number;
+  /** Sum of the pauses already taken today, in minutes. */
+  pauseTotalMin: number;
   /** Net time as computed by the panel when it published; only used for plausibility. */
   netMin?: number;
 };
@@ -38,9 +40,9 @@ export type Phase =
 
 export type Worktime = {
   phase: Phase;
-  /** Gross minutes since clock-in (pauses already removed by the panel). */
+  /** Minutes of attendance since clock-in, pauses taken included. */
   grossMin: number;
-  /** Statutory break deducted from the gross time. */
+  /** Break actually deducted: the larger of the pauses taken and the statutory one. */
   breakMin: number;
   netMin: number;
   /** Net minutes beyond the target, 0 while under it. */
@@ -57,23 +59,39 @@ export type WorktimeOptions = {
 };
 
 /**
- * Break rule of the Berry app: 30 minutes from 6 hours gross, 45 minutes
- * (30 + 15) from 8 hours gross.
+ * Break rule of the Berry app. Pauses taken count towards the statutory break
+ * instead of adding to it.
+ *
+ * Deducted from the attendance is the smallest duration that both covers the
+ * pauses taken and satisfies the statutory break for the working time it
+ * produces (over 6 h: 30 min, over 9 h: 45 min). When the attendance sits just
+ * above a threshold, less than the full break suffices and the working time is
+ * capped at the threshold instead. Defined this way the result is always
+ * permissible, always the largest permissible one, and a longer pause can never
+ * yield more working time.
  */
-export function breakMinutes(grossMin: number): number {
-  if (grossMin >= 8 * 60) {
-    return 45;
+export function breakMinutes(attendanceMin: number, pauseTakenMin = 0): number {
+  const attendance = Math.max(0, attendanceMin);
+  const taken = Math.max(0, pauseTakenMin);
+  let deduction = taken;
+  if (attendance - deduction > 6 * 60 && deduction < 30) {
+    deduction = Math.max(taken, Math.min(30, attendance - 6 * 60));
   }
-  if (grossMin >= 6 * 60) {
-    return 30;
+  if (attendance - deduction > 9 * 60 && deduction < 45) {
+    deduction = Math.max(taken, Math.min(45, attendance - 9 * 60));
   }
-  return 0;
+  return deduction;
 }
 
-/** Net working time for a gross duration, never negative. */
-export function netMinutes(grossMin: number): number {
-  const gross = Math.max(0, grossMin);
-  return Math.max(0, gross - breakMinutes(gross));
+/** Net working time for an attendance and the pauses already taken, never negative. */
+export function netMinutes(attendanceMin: number, pauseTakenMin = 0): number {
+  const attendance = Math.max(0, attendanceMin);
+  return Math.max(0, attendance - breakMinutes(attendance, pauseTakenMin));
+}
+
+/** Phase of the 1 Hz colon blink, mirroring the panel's `(now_ms() / 500) % 2`. */
+export function colonVisible(nowMs: number = Date.now()): boolean {
+  return Math.floor(nowMs / 500) % 2 === 0;
 }
 
 /** Minute of the day (0–1439) of a Date, in local time. */
@@ -97,11 +115,12 @@ export function computeWorktime(state: WorktimeState | undefined, nowMin: number
     return empty(nowMin >= SHOW_FROM_MIN ? "ready" : "idle");
   }
 
-  // While paused the time is frozen at the moment the pause began.
-  const until = state.paused ? state.pauseMin : nowMin;
+  // While paused the time is frozen at the moment the pause began; the running
+  // pause is not in pauseTotalMin yet, exactly as on the panel.
+  const until = state.paused ? state.pausedAtMin : nowMin;
   const grossMin = Math.max(0, until - state.startMin);
-  const breakMin = breakMinutes(grossMin);
-  const netMin = netMinutes(grossMin);
+  const breakMin = breakMinutes(grossMin, state.pauseTotalMin);
+  const netMin = netMinutes(grossMin, state.pauseTotalMin);
 
   return {
     phase: state.paused ? "paused" : "running",
@@ -126,15 +145,16 @@ export function nextCommand(state: WorktimeState | undefined): Command {
 export function applyCommand(state: WorktimeState | undefined, command: Command, nowMin: number): WorktimeState | undefined {
   switch (command) {
     case "clock_in":
-      return state?.startMin === undefined ? { startMin: nowMin, paused: false, pauseMin: 0 } : state;
+      return state?.startMin === undefined ? { startMin: nowMin, paused: false, pausedAtMin: 0, pauseTotalMin: 0 } : state;
     case "pause":
-      return state?.startMin !== undefined && !state.paused ? { ...state, paused: true, pauseMin: nowMin } : state;
+      return state?.startMin !== undefined && !state.paused ? { ...state, paused: true, pausedAtMin: nowMin } : state;
     case "resume": {
       if (state?.startMin === undefined || !state.paused) {
         return state;
       }
-      const pauseLen = Math.max(0, nowMin - state.pauseMin);
-      return { startMin: state.startMin + pauseLen, paused: false, pauseMin: 0 };
+      // The start time stays put; the pause is added to the running total.
+      const pauseLen = Math.max(0, nowMin - state.pausedAtMin);
+      return { startMin: state.startMin, paused: false, pausedAtMin: 0, pauseTotalMin: state.pauseTotalMin + pauseLen };
     }
     case "reset":
       return undefined;
@@ -158,10 +178,15 @@ export function parseState(payload: string): WorktimeState | undefined {
     return undefined;
   }
   const paused = r.paused === true || r.paused === 1 || r.paused === "true";
+  // Panels before the pause rework publish only `pause_min`, and it carries the
+  // minute the pause began rather than a total. Fall back to it when `paused_at`
+  // is missing, so an older panel still freezes the time at the right moment.
+  const legacy = r.paused_at === undefined;
   return {
     startMin,
     paused: startMin !== undefined && paused,
-    pauseMin: asMinute(r.pause_min) ?? 0,
+    pausedAtMin: (legacy ? asMinute(r.pause_min) : asMinute(r.paused_at)) ?? 0,
+    pauseTotalMin: (legacy ? 0 : asMinute(r.pause_min)) ?? 0,
     netMin: asMinute(r.net_min),
   };
 }

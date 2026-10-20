@@ -115,3 +115,50 @@ describe("dial and messages", () => {
     expect(decode(dialMessage("Offline", "check <settings>"))).not.toContain("<settings>");
   });
 });
+
+describe("running and pause indicators", () => {
+  const paused = (netMin: number): Worktime => ({ ...running(netMin), phase: "paused" });
+
+  it("draws a play triangle while running and pause bars while paused", () => {
+    const run = decode(worktimeKey({ worktime: running(at(3)), ...options }));
+    const stop = decode(worktimeKey({ worktime: paused(at(3)), ...options }));
+    expect(run).toContain("<path d=");
+    expect(run).not.toContain("<rect x=\"112\"");
+    // Two bars, and no triangle.
+    expect(stop.match(/<rect /g)?.length).toBeGreaterThanOrEqual(2);
+    expect(stop).not.toContain("<path d=\"M 114");
+  });
+
+  it("shows neither glyph before the day starts", () => {
+    const idle = decode(worktimeKey({ worktime: computeWorktime(undefined, at(7), options), ...options }));
+    expect(idle).not.toContain("<path d=");
+  });
+
+  it("draws the same pair on the dial", () => {
+    expect(decode(dialCanvas({ worktime: running(at(3)), ...options }))).toContain("<path d=");
+    expect(decode(dialCanvas({ worktime: paused(at(3)), ...options }))).not.toContain("<path d=");
+  });
+});
+
+describe("blinking colon", () => {
+  it("hides the colon on the off beat while running, keeping the digits", () => {
+    const on = decode(worktimeKey({ worktime: running(at(3, 25)), ...options, colonOn: true }));
+    const off = decode(worktimeKey({ worktime: running(at(3, 25)), ...options, colonOn: false }));
+    expect(on).toContain(">3:25<");
+    expect(off).toContain('<tspan fill-opacity="0">:</tspan>');
+    expect(off).toContain(">3<");
+    expect(off).toContain(">25<");
+  });
+
+  it("leaves the colon alone when the time does not run", () => {
+    const paused = decode(worktimeKey({ worktime: { ...running(at(3, 25)), phase: "paused" }, ...options, colonOn: false }));
+    expect(paused).toContain(">3:25<");
+    expect(paused).not.toContain('fill-opacity="0">:');
+  });
+
+  it("blinks on the dial too", () => {
+    expect(decode(dialCanvas({ worktime: running(at(3, 25)), ...options, colonOn: false }))).toContain(
+      '<tspan fill-opacity="0">:</tspan>',
+    );
+  });
+});

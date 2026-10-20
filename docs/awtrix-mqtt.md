@@ -16,20 +16,26 @@ Base topic `awtrix/arbeitszeit` (a `# @config topic` setting, so it can be chang
 ### `awtrix/arbeitszeit/state` — published by the panel
 
 ```json
-{ "start_min": 452, "paused": false, "pause_min": 0, "net_min": 123 }
+{ "start_min": 452, "paused": false, "paused_at": 0, "pause_min": 0, "net_min": 123 }
 ```
 
 | Field | Meaning |
 | --- | --- |
-| `start_min` | Clock-in time as minute of the day (`07:32` → `452`), `null` while not clocked in. Pauses that already ended are folded into it, exactly like the app moves `start` on resume. |
+| `start_min` | Clock-in time as minute of the day (`07:32` → `452`), `null` while not clocked in. It stays put over a pause — the pause goes into `pause_min` instead. |
 | `paused` | `true` while the time is frozen (select button pressed while running). |
-| `pause_min` | Minute of the day the current pause began (the app's `paused_at`); `0` when not paused. |
+| `paused_at` | Minute of the day the current pause began; `0` when not paused. |
+| `pause_min` | Sum of the pauses already finished today, in minutes. The running pause is not in it yet. |
 | `net_min` | Net minutes the app currently shows (after the break deduction); informational. |
 
 Published on every change (clock in, pause, resume, reset, midnight reset), once per minute
 while the app runs, and as an answer to the `state` command. The plugin computes the display
-from `start_min`, `paused` and `pause_min` with the same break rules as the app (30 min from 6 h
-gross, 45 min from 8 h gross), so it stays live between messages.
+from these fields with the same break rule as the app, so it stays live between messages:
+deducted from the attendance is the smallest duration that covers both `pause_min` and the
+statutory break for the resulting working time (over 6 h: 30 min, over 9 h: 45 min). Pauses taken
+therefore count towards the statutory break instead of adding to it.
+
+Before this rework the app published only `pause_min`, carrying the minute the pause began
+rather than a total. The plugin still reads that older shape when `paused_at` is absent.
 
 Retained messages: the plugin asks for the state right after connecting (see `state` below), so
 it works without a retained message. If the firmware's `mqtt.publish` accepts a retain flag

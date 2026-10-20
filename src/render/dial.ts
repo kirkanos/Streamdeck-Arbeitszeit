@@ -12,6 +12,8 @@ export type DialCanvas = {
   worktime: Worktime;
   targetMin: number;
   maxMin: number;
+  /** Phase of the colon blink while running; the colon stands still when the time does. */
+  colonOn?: boolean;
 };
 
 export function dialCanvas(d: DialCanvas): string {
@@ -34,17 +36,20 @@ export function dialCanvas(d: DialCanvas): string {
     weight: 800,
     anchor: "start",
     fill: dim ? THEME.subtle : "#FFFFFF",
+    hideColon: w.phase === "running" && d.colonOn === false,
   });
   const label = text(caption(w), { x: W - 12, y: 66, size: 13, weight: 600, opacity: 0.75, anchor: "end" });
 
-  const pause =
-    w.phase === "paused"
-      ? `<rect x="${W - 34}" y="12" width="6" height="16" rx="2" fill="${color}"/><rect x="${W - 22}" y="12" width="6" height="16" rx="2" fill="${color}"/>`
-      : "";
+  let glyph = "";
+  if (w.phase === "paused") {
+    glyph = `<rect x="${W - 34}" y="12" width="6" height="16" rx="2" fill="${color}"/><rect x="${W - 22}" y="12" width="6" height="16" rx="2" fill="${color}"/>`;
+  } else if (w.phase === "running") {
+    glyph = `<path d="M ${W - 32} 12 L ${W - 18} 20 L ${W - 32} 28 Z" fill="${color}"/>`;
+  }
 
   const bar = dim ? "" : progressBar({ netMin: w.netMin, targetMin: d.targetMin, maxMin: d.maxMin }, 12, 82, W - 24, 8, THEME.ok, THEME.warn);
 
-  return toDataUrl(svg(W, H, bg + dot + title + time + label + pause + bar));
+  return toDataUrl(svg(W, H, bg + dot + title + time + label + glyph + bar));
 }
 
 export function dialMessage(title: string, subtitle: string): string {
