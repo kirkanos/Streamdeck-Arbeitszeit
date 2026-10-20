@@ -62,23 +62,42 @@ describe("break rules", () => {
 
   it("is always permissible, maximal and monotonic", () => {
     const required = (net: number) => (net > at(9) ? 45 : net > at(6) ? 30 : 0);
+    // Collected rather than asserted per iteration: an expect() per case would
+    // be ~10^6 calls and their overhead alone blows the test timeout on CI.
+    const problems: string[] = [];
+    const note = (message: string) => {
+      if (problems.length < 10) {
+        problems.push(message);
+      }
+    };
+
     for (let attendance = 0; attendance <= at(14); attendance += 1) {
       let previous = Number.POSITIVE_INFINITY;
       for (let taken = 0; taken <= attendance; taken += 1) {
         const net = netMinutes(attendance, taken);
         const deduction = attendance - net;
+        const where = `attendance=${attendance} taken=${taken} net=${net}`;
+
         // Covers the pause taken and the statutory break for the result.
-        expect(deduction).toBeGreaterThanOrEqual(taken);
-        expect(deduction).toBeGreaterThanOrEqual(required(net));
+        if (deduction < taken || deduction < required(net)) {
+          note(`not permissible: ${where} deduction=${deduction}`);
+        }
         // No larger net time would be permissible.
         for (let d = taken; d < deduction; d += 1) {
-          expect(d).toBeLessThan(required(attendance - d));
+          if (d >= required(attendance - d)) {
+            note(`not maximal: ${where} could have deducted ${d}`);
+            break;
+          }
         }
         // A longer pause never yields more working time.
-        expect(net).toBeLessThanOrEqual(previous);
+        if (net > previous) {
+          note(`not monotonic: ${where} rose from ${previous}`);
+        }
         previous = net;
       }
     }
+
+    expect(problems).toEqual([]);
   });
 
   it("never goes negative", () => {
